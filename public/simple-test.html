@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 50px;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+        h1 { font-size: 48px; margin-top: 0; }
+        .status { margin: 30px 0; padding: 20px; background: rgba(0,0,0,0.2); border-radius: 10px; }
+        .success { color: #4ade80; font-size: 24px; }
+        .error { color: #f87171; font-size: 20px; }
+        button { background: white; color: #667eea; border: none; padding: 15px 30px; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; margin: 10px 5px; }
+        button:hover { opacity: 0.9; }
+        #log { background: #000; color: #0f0; padding: 20px; border-radius: 10px; font-family: 'Courier New', monospace; font-size: 14px; max-height: 400px; overflow-y: auto; margin-top: 20px; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✅ ProTrack-Auto Connection Test</h1>
+        
+        <div class="status">
+            <div class="success">✓ THIS PAGE LOADS = Frontend server is working!</div>
+            <p style="margin-top: 15px; font-size: 18px;">
+                If you can see this beautiful purple gradient page, your Vite server at port 5174 is working correctly.
+            </p>
+        </div>
+
+        <div class="status">
+            <h2 style="margin-top: 0;">Server Connection Status:</h2>
+            <p id="backend-status">Backend API: <span id="backend-result">Testing...</span></p>
+        </div>
+
+        <div class="status">
+            <h2 style="margin-top: 0;">Quick Actions:</h2>
+            <button onclick="testBackend()">🔍 Test Backend Connection</button>
+            <button onclick="testLogin()">🔐 Test Login API</button>
+            <button onclick="window.location.href='/'">🏠 Go to Main App</button>
+            <button onclick="location.reload()">🔄 Reload This Page</button>
+        </div>
+
+        <div class="status">
+            <h2 style="margin-top: 0;">Diagnosis:</h2>
+            <p style="font-size: 18px; line-height: 1.8;">
+                <strong>✅ You CAN see this page</strong> = Your frontend server (port 5174) is working fine!<br><br>
+                <strong>Problem:</strong> The main React app at <code>http://localhost:5174</code> is blank.<br><br>
+                <strong>Likely cause:</strong> A JavaScript/React error is preventing the app from rendering.<br><br>
+                <strong>What to do next:</strong>
+            </p>
+            <ol style="font-size: 16px; line-height: 1.8;">
+                <li>Open the main app: <a href="/" style="color: #4ade80; text-decoration: underline;">http://localhost:5174</a></li>
+                <li>Press <strong>F12</strong> to open Developer Tools</li>
+                <li>Click on the <strong>Console</strong> tab</li>
+                <li>Look for <strong style="color: #f87171;">RED error messages</strong></li>
+                <li>Take a screenshot and share the error</li>
+            </ol>
+        </div>
+
+        <h3>Console Log:</h3>
+        <div id="log">Initializing test page...
+</div>
+    </div>
+
+    <script>
+        const log = document.getElementById('log');
+        function addLog(msg) {
+            log.textContent += `\n[${new Date().toLocaleTimeString()}] ${msg}`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        addLog('✓ Test page loaded successfully');
+        addLog('✓ Frontend server (Vite) is responding on port 5174');
+        addLog('⟳ Auto-testing backend connection...');
+
+        async function testBackend() {
+            addLog('→ Testing backend at http://localhost:5001/api/health...');
+            try {
+                const response = await fetch('http://localhost:5001/api/health');
+                const data = await response.json();
+                document.getElementById('backend-result').innerHTML = '<span style="color: #4ade80;">✓ Connected</span>';
+                addLog('✓ Backend responded: ' + JSON.stringify(data));
+            } catch (error) {
+                document.getElementById('backend-result').innerHTML = '<span style="color: #f87171;">✗ Not Connected</span>';
+                addLog('✗ Backend error: ' + error.message);
+            }
+        }
+
+        async function testLogin() {
+            addLog('→ Testing login API with student1@example.com...');
+            try {
+                const response = await fetch('http://localhost:5001/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'student1@example.com',
+                        password: 'Student@123'
+                    })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    addLog('✓ Login successful! User: ' + data.full_name + ' (' + data.role + ')');
+                    addLog('  Token received: ' + data.token.substring(0, 20) + '...');
+                } else {
+                    addLog('✗ Login failed: ' + data.error);
+                }
+            } catch (error) {
+                addLog('✗ Login API error: ' + error.message);
+            }
+        }
+
+        // Auto-test backend on page load
+        setTimeout(testBackend, 1000);
+
+        addLog('✓ Ready! Click buttons above to run tests.');
+        addLog('');
+        addLog('NEXT STEP: Go to http://localhost:5174 and press F12 to see Console errors');
+    </script>
+</body>
+</html>
