@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { AppShell } from '../../layouts/AppShell';
 import { useAuthStore } from '../../store/authStore';
 import { api } from '../../lib/apiClient';
-import { Folder, Link as LinkIcon, Plus, ExternalLink, User } from 'lucide-react';
+import { Folder, Link as LinkIcon, Plus, ExternalLink, User, FileText, Loader2 } from 'lucide-react';
 
 interface Resource {
     resource_id: string;
@@ -17,7 +17,9 @@ export default function StudentResources() {
     const [resources, setResources] = useState<Resource[]>([]);
     const [title, setTitle] = useState('');
     const [url, setUrl] = useState('');
+    const [file, setFile] = useState<File | null>(null);
     const [error, setError] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
         if ((user as any)?.group_id && token) {
@@ -39,12 +41,34 @@ export default function StudentResources() {
         e.preventDefault();
         try {
             if (!(user as any)?.group_id || !token) return;
-            await api.createResource(token, (user as any).group_id, title, url);
+            setIsSubmitting(true);
+            setError('');
+
+            let finalUrl = url.trim();
+
+            if (file) {
+                const uploadRes = await api.uploadEvidence(token, file);
+                finalUrl = uploadRes.url;
+            }
+
+            if (!finalUrl) {
+                setError('Please provide a URL or upload a file');
+                setIsSubmitting(false);
+                return;
+            }
+
+            await api.createResource(token, (user as any).group_id, title, finalUrl);
             setTitle('');
             setUrl('');
+            setFile(null);
+            const fileInput = document.getElementById('resource-file-upload') as HTMLInputElement;
+            if (fileInput) fileInput.value = '';
+            
             loadResources();
         } catch (err: any) {
             setError(err.message || 'Failed to add resource');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -89,10 +113,10 @@ export default function StudentResources() {
                             <div key={res.resource_id} className="bg-white/5 border border-white/10 rounded-xl p-5 hover:bg-white/[0.07] transition-colors flex items-start justify-between group">
                                 <div className="flex items-start gap-4">
                                     <div className="w-10 h-10 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
-                                        <LinkIcon className="w-5 h-5" />
+                                        {res.url.includes('/uploads/') ? <FileText className="w-5 h-5" /> : <LinkIcon className="w-5 h-5" />}
                                     </div>
-                                    <div>
-                                        <h3 className="font-medium text-white mb-1 group-hover:text-blue-400 transition-colors">
+                                    <div className="min-w-0">
+                                        <h3 className="font-medium text-white mb-1 group-hover:text-blue-400 transition-colors truncate pr-4">
                                             {res.title}
                                         </h3>
                                         <div className="flex items-center gap-3 text-xs text-gray-400">
@@ -109,7 +133,7 @@ export default function StudentResources() {
                                     href={res.url} 
                                     target="_blank" 
                                     rel="noopener noreferrer"
-                                    className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+                                    className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all shrink-0"
                                 >
                                     <ExternalLink className="w-5 h-5" />
                                 </a>
@@ -126,7 +150,7 @@ export default function StudentResources() {
                         </h3>
                         <form onSubmit={handleAdd} className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-400 mb-1">Title</label>
+                                <label className="block text-sm font-medium text-gray-400 mb-1">Title *</label>
                                 <input
                                     type="text"
                                     required
@@ -136,22 +160,55 @@ export default function StudentResources() {
                                     placeholder="e.g. React Documentation"
                                 />
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-400 mb-1">URL / Link</label>
-                                <input
-                                    type="url"
-                                    required
-                                    value={url}
-                                    onChange={(e) => setUrl(e.target.value)}
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                                    placeholder="https://..."
-                                />
+                            
+                            <div className="p-4 rounded-xl bg-black/20 border border-white/[0.05] space-y-3">
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-400 uppercase mb-1.5">Upload File</label>
+                                    <input 
+                                        id="resource-file-upload"
+                                        type="file" 
+                                        accept=".pdf,.docx,.png,.jpg,.jpeg"
+                                        onChange={e => {
+                                            setFile(e.target.files?.[0] || null);
+                                            if (e.target.files?.[0]) setUrl('');
+                                        }}
+                                        className="w-full text-xs text-gray-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-500/20 file:text-blue-400 hover:file:bg-blue-500/30 transition-all cursor-pointer" 
+                                    />
+                                </div>
+                                
+                                <div className="relative py-2">
+                                    <div className="absolute inset-0 flex items-center">
+                                        <div className="w-full border-t border-white/10"></div>
+                                    </div>
+                                    <div className="relative flex justify-center text-[10px]">
+                                        <span className="bg-slate-900 px-2 text-gray-500 uppercase font-bold tracking-widest">OR</span>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-400 uppercase mb-1.5">External Link</label>
+                                    <input
+                                        type="url"
+                                        value={url}
+                                        onChange={e => {
+                                            setUrl(e.target.value);
+                                            if (e.target.value) setFile(null);
+                                            const fileInput = document.getElementById('resource-file-upload') as HTMLInputElement;
+                                            if (fileInput) fileInput.value = '';
+                                        }}
+                                        placeholder="https://..."
+                                        disabled={file !== null}
+                                        className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50 disabled:opacity-50"
+                                    />
+                                </div>
                             </div>
+
                             <button
                                 type="submit"
-                                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-2.5 rounded-xl transition-colors"
+                                disabled={isSubmitting || !title || (!url && !file)}
+                                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                Share with Group
+                                {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Sharing...</> : 'Share with Group'}
                             </button>
                         </form>
                     </div>

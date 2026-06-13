@@ -24,7 +24,7 @@ router.get('/announcements', authenticateRequest, async (req, res) => {
 // Post a new global announcement (Coordinator only)
 router.post('/announcements', authenticateRequest, authorize('COORDINATOR'), async (req, res) => {
     const { content } = req.body;
-    const userId = (req as any).user.userId;
+    const userId = (req as any).user.user_id;
 
     try {
         const { rows } = await pool.query(
@@ -39,9 +39,16 @@ router.post('/announcements', authenticateRequest, authorize('COORDINATOR'), asy
     }
 });
 
+import { isValidUUID } from '../utils/uuid.js';
+
 // Get messages for a specific group
 router.get('/group/:groupId', authenticateRequest, async (req, res) => {
     const { groupId } = req.params;
+
+    if (!isValidUUID(groupId)) {
+        res.status(404).json({ error: 'Group not found' });
+        return;
+    }
     
     try {
         const { rows } = await pool.query(`
@@ -61,8 +68,14 @@ router.get('/group/:groupId', authenticateRequest, async (req, res) => {
 // Post a new message to a specific group
 router.post('/group/:groupId', authenticateRequest, async (req, res) => {
     const { groupId } = req.params;
+    
+    if (!isValidUUID(groupId)) {
+        res.status(404).json({ error: 'Group not found' });
+        return;
+    }
+
     const { content } = req.body;
-    const userId = (req as any).user.userId;
+    const userId = (req as any).user.user_id;
 
     try {
         const { rows } = await pool.query(

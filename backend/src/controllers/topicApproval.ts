@@ -266,13 +266,13 @@ export async function reviewTopic(req: AuthenticatedRequest, res: Response): Pro
         };
         const allowedStages = roleStageMap[reviewer.role] || [];
         if (reviewer.role !== 'COORDINATOR' && !allowedStages.includes(currentStage)) {
-            res.status(403).json({ error: `Cannot review at stage '${currentStage}' as ${reviewer.role}` });
+            res.status(403).json({ error: `Cannot review: topic is at '${currentStage}' stage but your role is ${reviewer.role}` });
             return;
         }
 
         // Guide can only review their own groups
         if (reviewer.role === 'GUIDE' && proposal.guide_id !== reviewer.user_id) {
-            res.status(403).json({ error: 'You can only review proposals from your assigned groups' });
+            res.status(403).json({ error: `You can only review proposals from your assigned groups. Topic guide is ${proposal.guide_id}, but you are ${reviewer.user_id}` });
             return;
         }
 

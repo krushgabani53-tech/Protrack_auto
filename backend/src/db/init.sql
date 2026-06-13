@@ -1,4 +1,6 @@
 -- Drop existing types and tables if they exist (for clean setup)
+DROP TABLE IF EXISTS topic_approvals CASCADE;
+DROP TABLE IF EXISTS po_pso_mappings CASCADE;
 DROP TABLE IF EXISTS chat_messages CASCADE;
 DROP TABLE IF EXISTS rubric_templates CASCADE;
 DROP TABLE IF EXISTS student_notes CASCADE;
@@ -10,6 +12,9 @@ DROP TABLE IF EXISTS presentation_schedules CASCADE;
 DROP TABLE IF EXISTS logbooks CASCADE;
 DROP TABLE IF EXISTS project_proposals CASCADE;
 DROP TABLE IF EXISTS group_members CASCADE;
+DROP TABLE IF EXISTS allocation_audit CASCADE;
+DROP TABLE IF EXISTS guide_ratings CASCADE;
+DROP TABLE IF EXISTS global_settings CASCADE;
 DROP TABLE IF EXISTS project_groups CASCADE;
 DROP TABLE IF EXISTS faculty_profiles CASCADE;
 DROP TABLE IF EXISTS student_profiles CASCADE;
@@ -92,6 +97,49 @@ CREATE TABLE project_groups (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Create allocation_audit table
+CREATE TABLE allocation_audit (
+    audit_id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    group_id        UUID NOT NULL REFERENCES project_groups(group_id) ON DELETE CASCADE,
+    guide_id        UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    allocation_type VARCHAR(20) NOT NULL DEFAULT 'AUTO'
+                    CHECK (allocation_type IN ('AUTO', 'MANUAL', 'OVERRIDE', 'UNASSIGN')),
+    score           NUMERIC(5,2),
+    score_breakdown JSONB,
+    notes           TEXT,
+    allocated_by    UUID REFERENCES users(user_id) ON DELETE SET NULL,
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_allocation_audit_group ON allocation_audit(group_id);
+CREATE INDEX idx_allocation_audit_guide ON allocation_audit(guide_id);
+
+-- Create guide_ratings table
+CREATE TABLE guide_ratings (
+    rating_id   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    guide_id    UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    student_id  UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    group_id    UUID NOT NULL REFERENCES project_groups(group_id) ON DELETE CASCADE,
+    rating      INT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    comments    TEXT,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (student_id, guide_id, group_id)
+);
+CREATE INDEX idx_guide_ratings_guide ON guide_ratings(guide_id);
+
+-- Create global_settings table
+CREATE TABLE global_settings (
+    key         VARCHAR(100) PRIMARY KEY,
+    value       JSONB NOT NULL DEFAULT '{}',
+    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+INSERT INTO global_settings (key, value) VALUES
+    ('max_groups_per_guide', '6'),
+    ('logbook_window_days', '7'),
+    ('batch_year', '2025'),
+    ('institute_name', '"My Engineering College"'),
+    ('smtp_enabled', 'false')
+ON CONFLICT (key) DO NOTHING;
+
 -- Create group_members table
 CREATE TABLE group_members (
     group_id UUID REFERENCES project_groups(group_id) ON DELETE CASCADE,
@@ -108,13 +156,27 @@ CREATE TABLE project_proposals (
     title VARCHAR(255) NOT NULL,
     domain_tags TEXT[] NOT NULL DEFAULT '{}',
     priority INT DEFAULT 1 CHECK (priority IN (1, 2, 3)),
-    status VARCHAR(20) DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED', 'REVISION_REQUESTED')),
+    status VARCHAR(20) DEFAULT 'PENDING',
+    approval_stage VARCHAR(50) DEFAULT 'PENDING',
     rejection_reason TEXT,
     is_approved BOOLEAN DEFAULT FALSE,
     plagiarism_score INT DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(group_id, priority)
+);
+
+-- Create topic_approvals table
+CREATE TABLE topic_approvals (
+    approval_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    proposal_id UUID NOT NULL REFERENCES project_proposals(proposal_id) ON DELETE CASCADE,
+    stage VARCHAR(50) NOT NULL,
+    decision VARCHAR(50) NOT NULL,
+    decided_by UUID REFERENCES users(user_id) ON DELETE SET NULL,
+    comments TEXT,
+    rejection_reason TEXT,
+    plagiarism_score INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create logbooks table

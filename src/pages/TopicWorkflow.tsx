@@ -16,7 +16,10 @@ interface Proposal {
     proposal_id: string;
     group_id: string;
     title: string;
+    abstract?: string;
+    objectives?: string;
     domain_tags: string[];
+    technology_stack?: string[];
     priority: number;
     status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'REVISION_REQUESTED';
     rejection_reason?: string;
@@ -41,6 +44,9 @@ const TopicWorkflow: React.FC = () => {
     const [selectedPriority, setSelectedPriority] = useState<number>(1);
     const [title, setTitle] = useState('');
     const [tags, setTags] = useState('');
+    const [abstract, setAbstract] = useState('');
+    const [objectives, setObjectives] = useState('');
+    const [techStack, setTechStack] = useState('');
 
     const showToast = (type: 'success' | 'error', msg: string) => {
         setToast({ type, msg });
@@ -104,6 +110,9 @@ const TopicWorkflow: React.FC = () => {
         setSelectedPriority(available[0]);
         setTitle('');
         setTags('');
+        setAbstract('');
+        setObjectives('');
+        setTechStack('');
         setEditingProposal(null);
         setShowAddModal(true);
     };
@@ -113,6 +122,9 @@ const TopicWorkflow: React.FC = () => {
         setSelectedPriority(proposal.priority);
         setTitle(proposal.title);
         setTags(proposal.domain_tags.join(', '));
+        setAbstract(proposal.abstract || '');
+        setObjectives(proposal.objectives || '');
+        setTechStack((proposal.technology_stack || []).join(', '));
         setShowAddModal(true);
     };
 
@@ -135,14 +147,15 @@ const TopicWorkflow: React.FC = () => {
                 );
                 showToast('success', 'Topic updated successfully!');
             } else {
-                // Submit new proposal
-                await api.submitProposal(
-                    token!,
-                    selectedGroup.group_id,
-                    title.trim(),
-                    tagArray,
-                    selectedPriority
-                );
+                // Submit new proposal using the new submitTopics endpoint
+                await api.submitTopics(token!, selectedGroup.group_id, [{
+                    priority: selectedPriority,
+                    title: title.trim(),
+                    abstract: abstract.trim() || undefined,
+                    objectives: objectives.trim() || undefined,
+                    domain_tags: tagArray,
+                    technology_stack: techStack.split(',').map(t => t.trim()).filter(Boolean),
+                }]);
                 showToast('success', 'Topic submitted successfully!');
             }
 
@@ -520,6 +533,51 @@ const TopicWorkflow: React.FC = () => {
                                 />
                                 <p className="text-[10px] text-white/30 mt-1.5">
                                     Help coordinators categorize your project with relevant technology domains
+                                </p>
+                            </div>
+
+                            {/* FIELD A — Abstract */}
+                            <div>
+                                <label className="block text-xs font-bold text-white/40 uppercase tracking-widest mb-2">
+                                    Abstract <span className="text-white/20 normal-case font-normal">(optional)</span>
+                                </label>
+                                <textarea
+                                    value={abstract}
+                                    onChange={e => setAbstract(e.target.value)}
+                                    placeholder="Brief description of the problem your project solves (2-4 sentences)..."
+                                    rows={3}
+                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 text-white placeholder:text-white/25 rounded-xl text-sm focus:outline-none focus:border-purple-500/50 transition-all resize-none"
+                                />
+                            </div>
+
+                            {/* FIELD B — Objectives */}
+                            <div>
+                                <label className="block text-xs font-bold text-white/40 uppercase tracking-widest mb-2">
+                                    Objectives <span className="text-white/20 normal-case font-normal">(optional)</span>
+                                </label>
+                                <textarea
+                                    value={objectives}
+                                    onChange={e => setObjectives(e.target.value)}
+                                    placeholder="List the main objectives of this project..."
+                                    rows={2}
+                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 text-white placeholder:text-white/25 rounded-xl text-sm focus:outline-none focus:border-purple-500/50 transition-all resize-none"
+                                />
+                            </div>
+
+                            {/* FIELD C — Technology Stack */}
+                            <div>
+                                <label className="block text-xs font-bold text-white/40 uppercase tracking-widest mb-2">
+                                    Technology Stack <span className="text-white/20 normal-case font-normal">(optional, comma-separated)</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    value={techStack}
+                                    onChange={e => setTechStack(e.target.value)}
+                                    placeholder="e.g., React, Node.js, PostgreSQL, TensorFlow"
+                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 text-white placeholder:text-white/25 rounded-xl text-sm focus:outline-none focus:border-purple-500/50 transition-all"
+                                />
+                                <p className="text-[10px] text-white/30 mt-1.5">
+                                    Helps guides match their expertise to your project
                                 </p>
                             </div>
 

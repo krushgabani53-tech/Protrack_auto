@@ -1,12 +1,18 @@
 import { Response } from 'express';
 import { query } from '../config/database.js';
 import { AuthenticatedRequest } from '../middleware/auth.js';
+import { isValidUUID } from '../utils/uuid.js';
 
 // Add member to group (must have 3-4 members)
 export async function addMember(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
         const { group_id } = req.params;
         const { prn_no } = req.body;
+
+        if (!isValidUUID(group_id)) {
+            res.status(404).json({ error: 'Group not found' });
+            return;
+        }
 
         if (!prn_no) {
             res.status(400).json({ error: 'prn_no is required' });
@@ -83,6 +89,11 @@ export async function addMember(req: AuthenticatedRequest, res: Response): Promi
 export async function getMembers(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
         const { group_id } = req.params;
+
+        if (!isValidUUID(group_id)) {
+            res.status(404).json({ error: 'Group not found' });
+            return;
+        }
 
         const members = await query(
             `SELECT 

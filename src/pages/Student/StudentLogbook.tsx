@@ -19,50 +19,16 @@ interface Logbook {
     created_at: string;
 }
 
-// ─── Dummy logbook entries ─────────────────────────────────────────
-const DUMMY_GROUPS: Group[] = [
-    { group_id: 'grp-1', group_name: 'AI Research Team', status: 'ACTIVE' },
-    { group_id: 'grp-2', group_name: 'Web Dev Squad', status: 'WAITING_ALLOCATION' },
-];
 
-const DUMMY_LOGBOOKS: Record<string, Logbook[]> = {
-    'grp-1': [
-        {
-            log_id: 'l8', week_number: 8, work_summary: 'Finalized the model training pipeline. Achieved 92% accuracy on the test dataset using CNN with data augmentation. Prepared presentation for internal review.', guide_status: 'PENDING', created_at: '2025-03-15',
-        },
-        {
-            log_id: 'l7', week_number: 7, work_summary: 'Integrated OpenCV for real-time face detection. Resolved memory leak in the video stream handler. Documented the detection module with JSDoc.', guide_status: 'APPROVED', guide_remarks: 'Excellent progress! The accuracy improvement is notable. Keep up the good work.', evidence_url: 'https://github.com/team-alpha/attendance-ai/commit/abc123', created_at: '2025-03-08',
-        },
-        {
-            log_id: 'l6', week_number: 6, work_summary: 'Set up the database schema for storing attendance records. Created REST API endpoints for CRUD operations. Wrote unit tests for all endpoints.', guide_status: 'APPROVED', guide_remarks: 'Good structured approach. Make sure to add input validation.', created_at: '2025-03-01',
-        },
-        {
-            log_id: 'l5', week_number: 5, work_summary: 'Researched face recognition libraries — compared DeepFace, face_recognition and InsightFace. Selected InsightFace for its speed. Set up the development environment.', guide_status: 'APPROVED', guide_remarks: 'Great literature survey. The comparison table is very clear.', created_at: '2025-02-22',
-        },
-        {
-            log_id: 'l4', week_number: 4, work_summary: 'Completed system architecture diagram and finalized technology stack. Presented the plan to team members. Assigned module ownership.', guide_status: 'NEEDS_REVISION', guide_remarks: 'Please revise the architecture — the database connection layer needs more detail.', created_at: '2025-02-15',
-        },
-    ],
-    'grp-2': [
-        {
-            log_id: 'l3', week_number: 3, work_summary: 'Built the real-time text editor using Yjs CRDT. Implemented WebSocket connection with socket.io. Tested with 3 concurrent users — no conflicts.', guide_status: 'PENDING', created_at: '2025-03-10',
-        },
-        {
-            log_id: 'l2', week_number: 2, work_summary: 'Set up the Next.js project with TypeScript. Configured ESLint, Prettier and Husky pre-commit hooks. Created the basic page layout and routing.', guide_status: 'APPROVED', guide_remarks: 'Well-organized start. Continue this structured approach.', created_at: '2025-03-03',
-        },
-    ],
-};
-// ─────────────────────────────────────────────────────────────────
 
 export const StudentLogbook: React.FC = () => {
     const { token } = useAuthStore();
-    const [groups, setGroups] = useState<Group[]>(DUMMY_GROUPS);
-    const [selectedGroupId, setSelectedGroupId] = useState<string>('grp-1');
-    const [logbooks, setLogbooks] = useState<Logbook[]>(DUMMY_LOGBOOKS['grp-1']);
-    const [isLoading, setIsLoading] = useState(false);
+    const [logbooks, setLogbooks] = useState<any[]>([]);
+    const [isFetchingLogs, setIsFetchingLogs] = useState(false);
+    const [myGroup, setMyGroup] = useState<any>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [toast, setToast] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
-    const [expandedId, setExpandedId] = useState<string | null>('l8');
+    const [expandedId, setExpandedId] = useState<string | null>(null);
     const [showSubmitModal, setShowSubmitModal] = useState(false);
 
     const [weekNumber, setWeekNumber] = useState('');
@@ -76,39 +42,26 @@ export const StudentLogbook: React.FC = () => {
         setTimeout(() => setToast(null), 3500);
     };
 
-    const fetchGroups = async () => {
+    const fetchData = async () => {
         if (!token) return;
+        setIsFetchingLogs(true);
         try {
-            const data = await api.getGroups(token);
-            const list = Array.isArray(data) ? data : [];
-            if (list.length > 0) { setGroups(list); setSelectedGroupId(list[0].group_id); }
-        } catch (_err) { /* keep dummy */ }
-    };
-
-    const fetchLogbooks = async (groupId: string) => {
-        if (!token || !groupId) {
-            setLogbooks(DUMMY_LOGBOOKS[groupId] ?? []);
-            return;
-        }
-        try {
-            setIsLoading(true);
-            const data = await api.getLogbooks(token, groupId);
-            const list = Array.isArray(data) ? data : [];
-            setLogbooks(list.length > 0 ? list.sort((a, b) => b.week_number - a.week_number) : (DUMMY_LOGBOOKS[groupId] ?? []));
-        } catch (_err) {
-            setLogbooks(DUMMY_LOGBOOKS[groupId] ?? []);
+            const groups = await api.getGroups(token);
+            const groupList = Array.isArray(groups) ? groups : [];
+            if (groupList.length > 0) {
+                const group = groupList[0];
+                setMyGroup(group);
+                const logs = await api.getLogbooks(token, group.group_id);
+                setLogbooks(Array.isArray(logs) ? logs : []);
+            }
+        } catch (err) {
+            console.error('Failed to fetch logbooks:', err);
         } finally {
-            setIsLoading(false);
+            setIsFetchingLogs(false);
         }
     };
 
-    useEffect(() => { fetchGroups(); }, []); // eslint-disable-line
-    useEffect(() => { fetchLogbooks(selectedGroupId); }, [selectedGroupId]); // eslint-disable-line
-
-    const handleGroupChange = (id: string) => {
-        setSelectedGroupId(id);
-        setLogbooks(DUMMY_LOGBOOKS[id] ?? []);
-    };
+    useEffect(() => { fetchData(); }, [token]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -135,19 +88,13 @@ export const StudentLogbook: React.FC = () => {
                 setUploading(false);
             }
 
+            const groupId = myGroup?.group_id;
+            if (!groupId) { showToast('error', 'You are not in a group yet'); return; }
+
             if (token) {
-                await api.submitLogbook(token, selectedGroupId, parseInt(weekNumber), workSummary.trim(), finalEvidenceUrl || undefined);
+                await api.submitLogbook(token, groupId, parseInt(weekNumber), workSummary.trim(), finalEvidenceUrl || undefined);
             }
-            const newEntry: Logbook = {
-                log_id: `l-${Date.now()}`,
-                week_number: parseInt(weekNumber),
-                work_summary: workSummary.trim(),
-                evidence_url: finalEvidenceUrl || undefined,
-                guide_status: 'PENDING',
-                created_at: new Date().toISOString().split('T')[0],
-            };
-            setLogbooks(prev => [newEntry, ...prev].sort((a, b) => b.week_number - a.week_number));
-            setExpandedId(newEntry.log_id);
+            fetchData();
             showToast('success', `Week ${weekNumber} logbook submitted!`);
             setShowSubmitModal(false);
             setWeekNumber('');
@@ -208,27 +155,7 @@ export const StudentLogbook: React.FC = () => {
                 </button>
             </div>
 
-            {/* Group Selector */}
-            {groups.length > 1 && (
-                <div className="mb-6 flex items-center gap-3">
-                    <p className="text-xs font-bold text-white/40 uppercase tracking-widest">Group:</p>
-                    <div className="flex gap-2">
-                        {groups.map(g => (
-                            <button
-                                key={g.group_id}
-                                onClick={() => handleGroupChange(g.group_id)}
-                                className={`px-4 py-1.5 rounded-xl text-sm font-semibold transition-all ${
-                                    selectedGroupId === g.group_id
-                                        ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
-                                        : 'text-white/50 hover:text-white bg-white/[0.04] border border-white/[0.08]'
-                                }`}
-                            >
-                                {g.group_name}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            )}
+
 
             {/* Stats */}
             <div className="grid grid-cols-4 gap-4 mb-8">
@@ -250,22 +177,27 @@ export const StudentLogbook: React.FC = () => {
                 <div className="p-5 border-b border-white/[0.06] flex items-center justify-between">
                     <h2 className="text-sm font-bold text-white">Weekly Entries</h2>
                     <button
-                        onClick={() => fetchLogbooks(selectedGroupId)}
+                        onClick={fetchData}
                         className="p-1.5 text-white/30 hover:text-white hover:bg-white/10 rounded-lg transition-all"
                     >
-                        {isLoading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                        {isFetchingLogs ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                     </button>
                 </div>
 
-                {logbooks.length === 0 ? (
-                    <div className="p-12 text-center">
-                        <BookOpen size={32} className="text-white/10 mx-auto mb-3" />
-                        <p className="text-sm text-white/30 mb-4">No entries yet</p>
-                        <button onClick={() => setShowSubmitModal(true)} className="text-xs text-purple-400 hover:text-purple-300 font-semibold transition-colors">
-                            Submit your first entry →
-                        </button>
+                {isFetchingLogs && (
+                    <div className="flex justify-center py-8">
+                        <div className="w-6 h-6 border-2 border-white/20 border-t-indigo-400 rounded-full animate-spin" />
                     </div>
-                ) : (
+                )}
+
+                {!isFetchingLogs && logbooks.length === 0 && (
+                    <div className="p-12 text-center text-white/25">
+                        <BookOpen size={32} className="text-white/10 mx-auto mb-3" />
+                        <p className="text-sm">No logbook entries yet. Submit your first weekly update above.</p>
+                    </div>
+                )}
+
+                {!isFetchingLogs && logbooks.length > 0 && (
                     logbooks.map((log) => {
                         const sc = statusConfig(log.guide_status);
                         const isExpanded = expandedId === log.log_id;

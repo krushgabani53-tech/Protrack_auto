@@ -25,10 +25,11 @@ import { CoordinatorUsers } from './pages/Coordinator/CoordinatorUsers';
 import { CoordinatorRubrics } from './pages/Coordinator/CoordinatorRubrics';
 import { CoordinatorSchedules } from './pages/Coordinator/CoordinatorSchedules';
 import { CoordinatorAnnouncements } from './pages/Coordinator/CoordinatorAnnouncements';
-// import { CoordinatorTopicApproval } from './pages/Coordinator/CoordinatorTopicApproval';
+import { CoordinatorTopicApproval } from './pages/Coordinator/CoordinatorTopicApproval';
+import { CoordinatorMilestones } from './pages/Coordinator/CoordinatorMilestones';
+import { CoordinatorSettings } from './pages/Coordinator/CoordinatorSettings';
 
 // Committee
-import { CommitteeEvaluations } from './pages/Committee/CommitteeEvaluations';
 import { CommitteeEvaluationNew } from './pages/Committee/CommitteeEvaluationNew';
 import { CommitteeDashboard } from './pages/Committee/CommitteeDashboard';
 import { CommitteeResults } from './pages/Committee/CommitteeResults';
@@ -122,12 +123,7 @@ export default function App() {
                     <ProtectedRoute requiredRoles={['COORDINATOR']}><CoordinatorAnnouncements /></ProtectedRoute>
                 } />
                 <Route path="/coordinator/topics" element={
-                    <ProtectedRoute requiredRoles={['COORDINATOR']}>
-                        <div style={{ padding: '50px', color: 'white', background: '#1a1a2e' }}>
-                            <h1>Topic Approval - Under Maintenance</h1>
-                            <p>This feature is temporarily disabled.</p>
-                        </div>
-                    </ProtectedRoute>
+                    <ProtectedRoute requiredRoles={['COORDINATOR']}><CoordinatorTopicApproval /></ProtectedRoute>
                 } />
                 <Route path="/coordinator/po-pso" element={
                     <ProtectedRoute requiredRoles={['COORDINATOR']}><POPSOMapping /></ProtectedRoute>
@@ -135,13 +131,19 @@ export default function App() {
                 <Route path="/coordinator/documents" element={
                     <ProtectedRoute requiredRoles={['COORDINATOR']}><DocumentManagement /></ProtectedRoute>
                 } />
+                <Route path="/coordinator/milestones" element={
+                    <ProtectedRoute requiredRoles={['COORDINATOR']}><CoordinatorMilestones /></ProtectedRoute>
+                } />
+                <Route path="/coordinator/settings" element={
+                    <ProtectedRoute requiredRoles={['COORDINATOR']}><CoordinatorSettings /></ProtectedRoute>
+                } />
 
                 {/* ── Committee ── */}
                 <Route path="/committee/dashboard" element={
                     <ProtectedRoute requiredRoles={['COMMITTEE']}><CommitteeDashboard /></ProtectedRoute>
                 } />
                 <Route path="/committee/evaluations" element={
-                    <ProtectedRoute requiredRoles={['COMMITTEE']}><CommitteeEvaluations /></ProtectedRoute>
+                    <ProtectedRoute requiredRoles={['COMMITTEE']}><CommitteeEvaluationNew /></ProtectedRoute>
                 } />
                 <Route path="/committee/results" element={
                     <ProtectedRoute requiredRoles={['COMMITTEE']}><CommitteeResults /></ProtectedRoute>

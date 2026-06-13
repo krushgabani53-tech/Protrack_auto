@@ -17,13 +17,8 @@ export const CommitteeHistoricSearch: React.FC = () => {
         setIsSearching(true);
         setHasSearched(true);
         try {
-            // Reusing getGroups and filtering locally for demo purposes, 
-            // since we don't have a specific historic search endpoint.
-            const data = await api.getGroups(token, 'ALL');
-            const filtered = data.filter((g: any) => 
-                g.group_name.toLowerCase().includes(query.toLowerCase())
-            );
-            setResults(filtered);
+            const data = await api.searchHistoricProjects(token, query);
+            setResults(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error('Search failed', error);
         } finally {
@@ -83,11 +78,11 @@ export const CommitteeHistoricSearch: React.FC = () => {
                                     <div key={idx} className="p-5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
                                         <div className="flex items-start justify-between">
                                             <div>
-                                                <h4 className="text-lg font-bold text-white mb-1">{project.group_name}</h4>
+                                                <h4 className="text-lg font-bold text-white mb-1">{project.title}</h4>
                                                 <div className="flex items-center gap-4 text-xs text-white/40">
-                                                    <span className="flex items-center gap-1.5"><Clock size={12} /> Class of 2024</span>
+                                                    <span className="flex items-center gap-1.5"><Clock size={12} /> Class of {new Date(project.created_at).getFullYear()}</span>
                                                     <span>•</span>
-                                                    <span>{project.member_count} Members</span>
+                                                    <span>{project.group_name}</span>
                                                 </div>
                                             </div>
                                             <span className="px-3 py-1 bg-indigo-500/20 text-indigo-300 rounded-lg text-xs font-bold border border-indigo-500/30">

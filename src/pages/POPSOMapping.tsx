@@ -28,16 +28,17 @@ const initMatrix = (keys: string[]) => {
 };
 
 export default function POPSOMapping() {
-  const { user } = useAuthStore();
+  const { user, token } = useAuthStore();
   const [poMatrix, setPoMatrix] = useState(() => initMatrix(PO_KEYS));
   const [psoMatrix, setPsoMatrix] = useState(() => initMatrix(PSO_KEYS));
   const [loading, setLoading] = useState(true);
   const [toastMessage, setToastMessage] = useState('');
 
   const fetchMappings = async () => {
+    if (!token) return;
     try {
       setLoading(true);
-      const res = await api.getMappings();
+      const res = await api.getMappings(token);
       // If empty, fall back to defaults (which are 0)
       if (res && res.poMatrix && Object.keys(res.poMatrix).length > 0) {
          setPoMatrix(prev => mergeMatrix(prev, res.poMatrix));
@@ -53,8 +54,9 @@ export default function POPSOMapping() {
   };
 
   useEffect(() => {
-    fetchMappings();
-  }, []);
+    if (token) fetchMappings();
+    else setLoading(false);
+  }, [token]);
 
   const mergeMatrix = (base: any, updates: any) => {
     const newM = { ...base };
@@ -73,7 +75,7 @@ export default function POPSOMapping() {
   };
 
   const cyclePO = async (crit: string, po: string) => {
-    if (user?.role !== 'COORDINATOR') return;
+    if (user?.role !== 'COORDINATOR' || !token) return;
     const current = poMatrix[crit][po] || 0;
     const next = (current + 1) % 4; // cycles 0, 1, 2, 3
     setPoMatrix({
@@ -81,7 +83,7 @@ export default function POPSOMapping() {
       [crit]: { ...poMatrix[crit], [po]: next }
     });
     try {
-      await api.saveMapping({ criterion_id: crit, mapping_type: 'PO', outcome_key: po, level: next });
+      await api.saveMapping(token, { criterion_id: crit, mapping_type: 'PO', outcome_key: po, level: next });
       showToast('Saved');
     } catch (error) {
       console.error(error);
@@ -89,7 +91,7 @@ export default function POPSOMapping() {
   };
 
   const cyclePSO = async (crit: string, pso: string) => {
-    if (user?.role !== 'COORDINATOR') return;
+    if (user?.role !== 'COORDINATOR' || !token) return;
     const current = psoMatrix[crit][pso] || 0;
     const next = (current + 1) % 4;
     setPsoMatrix({
@@ -97,7 +99,7 @@ export default function POPSOMapping() {
       [crit]: { ...psoMatrix[crit], [pso]: next }
     });
     try {
-      await api.saveMapping({ criterion_id: crit, mapping_type: 'PSO', outcome_key: pso, level: next });
+      await api.saveMapping(token, { criterion_id: crit, mapping_type: 'PSO', outcome_key: pso, level: next });
       showToast('Saved');
     } catch (error) {
       console.error(error);
@@ -106,8 +108,9 @@ export default function POPSOMapping() {
 
   const handleReset = async () => {
     if (!window.confirm('Are you sure you want to reset all mappings to defaults?')) return;
+    if (!token) return;
     try {
-      await api.resetMappings();
+      await api.resetMappings(token);
       setPoMatrix(initMatrix(PO_KEYS));
       setPsoMatrix(initMatrix(PSO_KEYS));
       showToast('Reset successful');

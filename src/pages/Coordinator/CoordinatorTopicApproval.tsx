@@ -3,7 +3,8 @@ import { AppShell } from '../../layouts/AppShell';
 import { api } from '../../lib/apiClient';
 import { useAuthStore } from '../../store/authStore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { TopicReviewShell, ProposalCard, Proposal, StageBadge, PriorityBadge } from '../shared/TopicApprovalComponents';
+import type { Proposal } from '../shared/TopicApprovalComponents';
+import { TopicReviewShell, ProposalCard, StageBadge, PriorityBadge } from '../shared/TopicApprovalComponents';
 import { BarChart2, Search, Loader2, CheckCircle2, Filter, AlertCircle, Upload } from 'lucide-react';
 import { cn } from '../../lib/utils';
 

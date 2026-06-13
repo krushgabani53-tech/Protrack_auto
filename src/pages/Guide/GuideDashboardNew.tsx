@@ -256,7 +256,7 @@ export const GuideDashboardNew: React.FC = () => {
                         </h2>
                     </div>
                     <div className="p-5 h-[300px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height={300}>
                             <BarChart data={analytics} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
                                 <XAxis dataKey="group_name" stroke="rgba(255,255,255,0.5)" fontSize={12} tickLine={false} axisLine={false} />

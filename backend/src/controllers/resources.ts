@@ -12,7 +12,7 @@ export const getResources = async (req: Request, res: Response): Promise<void> =
              ORDER BY r.created_at DESC`,
             [group_id]
         );
-        res.json(result.rows);
+        res.json(result);
     } catch (error) {
         console.error('Error fetching resources:', error);
         res.status(500).json({ error: 'Failed to fetch resources' });
@@ -30,7 +30,7 @@ export const createResource = async (req: Request, res: Response): Promise<void>
              RETURNING *`,
             [group_id, title, url, user_id]
         );
-        res.status(201).json(result.rows[0]);
+        res.status(201).json(result[0]);
     } catch (error) {
         console.error('Error creating resource:', error);
         res.status(500).json({ error: 'Failed to create resource' });

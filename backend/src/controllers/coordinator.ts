@@ -20,7 +20,7 @@ export const exportYearlyReport = async (req: Request, res: Response): Promise<v
         );
         
         // Simple JSON to CSV
-        const data = result.rows;
+        const data = result;
         if (data.length === 0) {
             res.send('No data available');
             return;
@@ -58,7 +58,7 @@ export const getOrphanStudents = async (req: Request, res: Response): Promise<vo
              LEFT JOIN group_members m ON u.user_id = m.student_id
              WHERE m.group_id IS NULL AND u.role = 'STUDENT'`
         );
-        res.json(result.rows);
+        res.json(result);
     } catch (error) {
         console.error('Error fetching orphan students:', error);
         res.status(500).json({ error: 'Failed to fetch orphan students' });
@@ -75,7 +75,7 @@ export const autoGroupOrphans = async (req: Request, res: Response): Promise<voi
              WHERE m.group_id IS NULL AND u.role = 'STUDENT'`
         );
         
-        const orphans = result.rows;
+        const orphans = result;
         let createdGroups = 0;
         
         // Group in batches of 4
@@ -88,7 +88,7 @@ export const autoGroupOrphans = async (req: Request, res: Response): Promise<voi
                 `INSERT INTO project_groups (group_name, status) VALUES ($1, 'WAITING_ALLOCATION') RETURNING group_id`,
                 [groupName]
             );
-            const groupId = groupResult.rows[0].group_id;
+            const groupId = groupResult[0].group_id;
             
             for (const student of batch) {
                 await query(

@@ -351,12 +351,12 @@ export const checkPlagiarism = async (req: Request, res: Response): Promise<void
             [fakeScore, proposal_id]
         );
         
-        if (result.rows.length === 0) {
+        if (result.length === 0) {
             res.status(404).json({ error: 'Proposal not found' });
             return;
         }
         
-        res.json(result.rows[0]);
+        res.json(result[0]);
     } catch (error) {
         console.error('Error in checkPlagiarism:', error);
         res.status(500).json({ error: 'Failed to check plagiarism' });

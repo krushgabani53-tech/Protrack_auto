@@ -24,11 +24,31 @@ async function apiCall<T>(
     });
 
     if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || `HTTP ${response.status}`);
+        let errorMessage = `HTTP ${response.status}`;
+        try {
+            const contentType = response.headers.get('content-type') || '';
+            const text = await response.text();
+            if (text && contentType.includes('application/json')) {
+                const error = JSON.parse(text);
+                errorMessage = error.error || error.message || errorMessage;
+            } else if (text) {
+                errorMessage = text.slice(0, 200); // truncate long HTML errors
+            }
+        } catch (_) {
+            // ignore parse errors on error response body
+        }
+        throw new Error(errorMessage);
     }
 
-    return response.json();
+    // Handle empty responses (e.g. 204 No Content, or DELETE with no body)
+    const contentLength = response.headers.get('content-length');
+    const contentType = response.headers.get('content-type') || '';
+    if (contentLength === '0' || response.status === 204 || !contentType.includes('application/json')) {
+        return undefined as unknown as T;
+    }
+    const text = await response.text();
+    if (!text) return undefined as unknown as T;
+    return JSON.parse(text) as T;
 }
 
 export const api = {
@@ -84,6 +104,22 @@ export const api = {
 
     getWhitelist: (token: string) =>
         apiCall<any[]>('/coordinator/whitelist', { token, method: 'GET' }),
+
+    uploadFacultyWhitelist: (token: string, file: File) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        return fetch(`${API_BASE}/coordinator/whitelist/faculty/upload`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+            body: formData
+        }).then(res => {
+            if (!res.ok) throw new Error('Faculty whitelist upload failed');
+            return res.json();
+        });
+    },
+
+    getFacultyWhitelist: (token: string) =>
+        apiCall<any[]>('/coordinator/whitelist/faculty', { token, method: 'GET' }),
 
     // Group endpoints
     getGroups: (token: string, status?: string) => {
@@ -176,22 +212,25 @@ export const api = {
         }),
 
     // Logbook endpoints
-    uploadResource: (groupId: string, file: File, title: string) => {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('title', title);
-        return apiCall<any>(`/resources/group/${groupId}`, {
-            method: 'POST',
-            body: formData as any,
-        });
-    },
+
     // Mappings
-    getMappings: () =>
-        apiCall<{ poMatrix: any; psoMatrix: any }>('/po-mapping', { method: 'GET' }),
-    saveMapping: (data: { criterion_id: string; mapping_type: 'PO' | 'PSO'; outcome_key: string; level: number }) =>
-        apiCall<void>('/po-mapping', { method: 'POST', body: JSON.stringify(data) }),
-    resetMappings: () =>
-        apiCall<void>('/po-mapping', { method: 'DELETE' }),
+    getMappings: (token: string) =>
+        apiCall<{ poMatrix: any; psoMatrix: any }>('/po-mapping', { token, method: 'GET' }),
+
+    saveMapping: (token: string, data: {
+        criterion_id: string;
+        mapping_type: 'PO' | 'PSO';
+        outcome_key: string;
+        level: number;
+    }) =>
+        apiCall<void>('/po-mapping', {
+            token,
+            method: 'POST',
+            body: JSON.stringify(data)
+        }),
+
+    resetMappings: (token: string) =>
+        apiCall<void>('/po-mapping', { token, method: 'DELETE' }),
 
     uploadEvidence: (token: string, file: File) => {
         const formData = new FormData();
@@ -225,13 +264,15 @@ export const api = {
             })
         }),
 
-    getLogbooks: (token: string, groupId: string, status?: string) => {
+    getLogbooks: async (token: string, groupId: string, status?: string) => {
         const params = new URLSearchParams();
         if (status) params.append('status', status);
-        return apiCall<any[]>(
+        const data = await apiCall<any>(
             `/groups/${groupId}/logbooks${params.toString() ? '?' + params : ''}`,
             { token, method: 'GET' }
         );
+        // Backend returns { group_id, total_logbooks, logbooks: [] } — unwrap the array
+        return (Array.isArray(data) ? data : data?.logbooks ?? []) as any[];
     },
 
     approveLogbook: (token: string, logId: string, guideStatus: string, remarks?: string) =>

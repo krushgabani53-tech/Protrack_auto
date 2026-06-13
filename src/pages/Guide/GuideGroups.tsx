@@ -91,20 +91,8 @@ export const GuideGroups: React.FC = () => {
     };
 
     const handleProposalAction = async (proposalId: string, isApproved: boolean) => {
-        if (!token || !selectedGroup) return;
-        setIsActioning(true);
-        try {
-            await api.approveProposal(token, proposalId, isApproved);
-            showToast('success', `Proposal ${isApproved ? 'approved' : 'rejected'} successfully.`);
-            // Reload proposals
-            const pList = await api.getProposals(token, selectedGroup.group_id);
-            setProposals(Array.isArray(pList) ? pList : []);
-        } catch (err: any) {
-            console.error(err);
-            showToast('error', err.message || 'Failed to update proposal status');
-        } finally {
-            setIsActioning(false);
-        }
+        // Obsolete: Guides should use the dedicated Topic Approvals page for the multi-stage SPPU workflow
+        showToast('error', 'Please use the dedicated Topic Approvals tab to review topics.');
     };
 
     const handleCheckPlagiarism = async (proposalId: string) => {
@@ -278,20 +266,7 @@ export const GuideGroups: React.FC = () => {
                                             )}
                                             {p.is_approved === null && (
                                                 <div className="flex items-center gap-2">
-                                                    <button
-                                                        onClick={() => handleProposalAction(p.proposal_id, true)}
-                                                        disabled={isActioning}
-                                                        className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-xs rounded-lg transition-all disabled:opacity-50 flex items-center gap-1"
-                                                    >
-                                                        <CheckCircle2 size={14} /> Approve
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleProposalAction(p.proposal_id, false)}
-                                                        disabled={isActioning}
-                                                        className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-lg transition-all disabled:opacity-50 flex items-center gap-1"
-                                                    >
-                                                        <X size={14} /> Reject
-                                                    </button>
+                                                    <span className="text-xs text-white/40 italic">Review in Topic Approvals tab</span>
                                                 </div>
                                             )}
                                         </div>

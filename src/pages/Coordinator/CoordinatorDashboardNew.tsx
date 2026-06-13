@@ -2,28 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { AppShell } from '../../layouts/AppShell';
 import { useAuthStore } from '../../store/authStore';
 import { api } from '../../lib/apiClient';
-import { Users, BookOpen, AlertOctagon, TrendingUp, Sparkles, Activity, Zap, Download, Filter, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
-import { BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { Link } from 'react-router-dom';
+import { Users, BookOpen, AlertOctagon, TrendingUp, Sparkles, Activity, Zap, Download, Filter, AlertTriangle, CheckCircle, Clock, Target } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { motion } from 'framer-motion';
 
-// Dummy data for charts until Phase 5
-const workloadData = [
-  { name: "Smith", groups: 5 }, 
-  { name: "Jenkins", groups: 4 },
-  { name: "Davis", groups: 8 }, 
-  { name: "Wilson", groups: 3 },
-  { name: "Taylor", groups: 6 },
-  { name: "Brown", groups: 2 }
-];
 
-const radarData = [
-  { subject: 'PO1', A: 120, fullMark: 150 },
-  { subject: 'PO2', A: 98, fullMark: 150 },
-  { subject: 'PO3', A: 86, fullMark: 150 },
-  { subject: 'PO4', A: 99, fullMark: 150 },
-  { subject: 'PO5', A: 85, fullMark: 150 },
-  { subject: 'PO6', A: 65, fullMark: 150 },
-];
 
 interface ComplianceRecord {
     group_id: string;
@@ -47,6 +31,7 @@ interface ComplianceSummary {
 export const CoordinatorDashboardNew: React.FC = () => {
     const { token } = useAuthStore();
     const [stats, setStats] = useState({ totalGroups: 0, unassigned: 0, active: 0, totalStudents: 0 });
+    const [workloadData, setWorkloadData] = useState<{ name: string; groups: number; max: number }[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [complianceData, setComplianceData] = useState<ComplianceRecord[]>([]);
     const [complianceSummary, setComplianceSummary] = useState<ComplianceSummary | null>(null);
@@ -76,6 +61,20 @@ export const CoordinatorDashboardNew: React.FC = () => {
                 if (complianceResponse) {
                     setComplianceData(complianceResponse.compliance || []);
                     setComplianceSummary(complianceResponse.summary || null);
+                }
+
+                try {
+                    const guidesRes = await api.getAvailableGuides(token);
+                    const guides = guidesRes?.guides || [];
+                    setWorkloadData(
+                        guides.map((g: any) => ({
+                            name: g.full_name?.split(' ')[0] || g.email?.split('@')[0] || 'Guide',
+                            groups: Number(g.current_workload) || 0,
+                            max: Number(g.max_workload) || 6,
+                        }))
+                    );
+                } catch {
+                    // silently fail — chart just stays empty
                 }
             } catch (err) {
                 console.error(err);
@@ -180,7 +179,7 @@ export const CoordinatorDashboardNew: React.FC = () => {
                             <h3 className="text-xl font-bold text-white flex items-center gap-2"><Zap className="w-5 h-5 text-indigo-400" /> Guide Workload Distribution</h3>
                         </div>
                         <div className="h-[350px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer width="100%" height={350}>
                                 <BarChart data={workloadData} margin={{ top: 20, right: 30, left: -20, bottom: 5 }}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
                                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: 'rgba(255,255,255,0.5)'}} dy={10} />
@@ -189,6 +188,7 @@ export const CoordinatorDashboardNew: React.FC = () => {
                                         cursor={{fill: 'rgba(255,255,255,0.02)'}}
                                         contentStyle={{ backgroundColor: 'rgba(9, 9, 11, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: '#fff' }}
                                     />
+                                    <Bar dataKey="max" fill="rgba(255,255,255,0.06)" radius={[6, 6, 0, 0]} maxBarSize={60} />
                                     <Bar dataKey="groups" radius={[6, 6, 0, 0]} maxBarSize={60}>
                                         {workloadData.map((e, i) => (
                                             <Cell key={i} fill={e.groups > 6 ? '#ef4444' : e.groups < 3 ? '#10b981' : '#6366f1'} />
@@ -199,19 +199,25 @@ export const CoordinatorDashboardNew: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="p-6 rounded-2xl border border-white/10 bg-white/5 shadow-sm flex flex-col backdrop-blur-sm">
-                        <h3 className="text-xl font-bold mb-2 text-white">PO/PSO Attainment Tracking</h3>
-                        <p className="text-sm text-white/50 mb-6">Department-wide coverage analysis across all projects.</p>
-                        <div className="flex-1 min-h-[300px]">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
-                                    <PolarGrid stroke="rgba(255,255,255,0.1)" />
-                                    <PolarAngleAxis dataKey="subject" tick={{fill: 'rgba(255,255,255,0.7)', fontSize: 12}} />
-                                    <PolarRadiusAxis angle={30} domain={[0, 150]} tick={false} axisLine={false} />
-                                    <Radar name="Attainment" dataKey="A" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.5} />
-                                    <Tooltip contentStyle={{ backgroundColor: 'rgba(9, 9, 11, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: '#fff' }} />
-                                </RadarChart>
-                            </ResponsiveContainer>
+                    <div className="rounded-2xl bg-white/[0.04] border border-white/[0.08] p-6 h-full flex flex-col">
+                        <div className="flex items-center gap-2 mb-4">
+                            <Target size={16} className="text-indigo-400" />
+                            <h3 className="text-sm font-bold text-white">PO/PSO Attainment</h3>
+                        </div>
+                        <div className="flex-1 flex flex-col items-center justify-center text-center gap-4">
+                            <div className="w-16 h-16 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+                                <Target size={28} className="text-indigo-400/60" />
+                            </div>
+                            <div>
+                                <p className="text-sm text-white/50 mb-1">View detailed PO/PSO coverage analysis</p>
+                                <p className="text-xs text-white/25">Configure mappings first, then attainment auto-calculates</p>
+                            </div>
+                            <Link
+                                to="/coordinator/po-pso"
+                                className="px-4 py-2 text-xs font-bold bg-indigo-500/15 text-indigo-400 border border-indigo-500/25 rounded-xl hover:bg-indigo-500/25 transition-all"
+                            >
+                                Open PO/PSO Mapping →
+                            </Link>
                         </div>
                     </div>
                 </div>

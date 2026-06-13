@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { useNavigate } from 'react-router-dom';
-import { Menu, X, Bell, LogOut, Search, LayoutDashboard, Users, BookOpen, CheckSquare, BarChart2, Target, Trophy, Star, ChevronDown, Sparkles, Calendar, FolderSync, CheckCircle2, FileText, FolderOpen } from 'lucide-react';
+import { Menu, X, Bell, LogOut, Search, LayoutDashboard, Users, BookOpen, CheckSquare, BarChart2, Target, Trophy, Star, ChevronDown, Sparkles, Calendar, FolderSync, CheckCircle2, FileText, FolderOpen, Settings } from 'lucide-react';
 
 interface AppShellProps {
     children: React.ReactNode;
@@ -31,9 +31,11 @@ const navigationByRole = {
         { label: 'Documents', path: '/coordinator/documents', icon: FolderOpen },
         { label: 'Topic Approvals', path: '/coordinator/topics', icon: FileText },
         { label: 'User Management', path: '/coordinator/users', icon: Users },
+        { label: 'Milestones', path: '/coordinator/milestones', icon: Calendar },
         { label: 'Schedules', path: '/coordinator/schedules', icon: Calendar },
         { label: 'Rubrics', path: '/coordinator/rubrics', icon: Target },
         { label: 'Announcements', path: '/coordinator/announcements', icon: Bell },
+        { label: 'Settings', path: '/coordinator/settings', icon: Settings },
     ],
     COMMITTEE: [
         { label: 'Dashboard', path: '/committee/dashboard', icon: Trophy },

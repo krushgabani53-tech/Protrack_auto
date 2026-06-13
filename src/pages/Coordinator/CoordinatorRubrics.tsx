@@ -24,7 +24,7 @@ export const CoordinatorRubrics: React.FC = () => {
     const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
-        fetchRubrics();
+        if (token) fetchRubrics();
     }, [token]);
 
     const fetchRubrics = async () => {
@@ -34,7 +34,7 @@ export const CoordinatorRubrics: React.FC = () => {
             const data = await api.getRubrics(token);
             setRubrics(Array.isArray(data) ? data : []);
         } catch (err) {
-            console.error('Failed to fetch rubrics');
+            console.error('Failed to fetch rubrics:', err instanceof Error ? err.message : err);
         } finally {
             setIsLoading(false);
         }

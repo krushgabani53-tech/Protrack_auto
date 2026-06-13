@@ -268,7 +268,7 @@ export const bulkApproveLogbooks = async (req: Request, res: Response): Promise<
             [logbook_ids]
         );
 
-        res.json({ message: 'Logbooks approved successfully', count: result.rowCount });
+        res.json({ message: 'Logbooks approved successfully', count: result.length });
     } catch (error) {
         console.error('Error in bulkApproveLogbooks:', error);
         res.status(500).json({ error: 'Failed to bulk approve logbooks' });
